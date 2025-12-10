@@ -21,7 +21,7 @@ import sounddevice as sd
 import wcslib as wcs
 
 # TODO: Add relevant parameters to parameters.py
-from parameters import Tb, Ac, dt # ...
+from parameters import Tb, Ac, dt, Wc # ...
 
 
 def main():
@@ -66,7 +66,7 @@ def main():
     xt = np.zeros_like(xb)
     
     for i in range(len(xt)):
-        xt[i] = xb[i] * Ac * np.sin(2*1000*np.pi*tt[i])
+        xt[i] = xb[i] * Ac * np.sin(Wc * np.pi * tt[i])
     # xt = xb * Ac * np.sin(2*1000*np.pi* tt)
 
     N = 4 # order for the filter
@@ -75,7 +75,7 @@ def main():
     fs = 1/dt # freq sampling
 
     # we bandlimit it our freq range to the specification from the appendix which is from 900 - 1100 Hz 
-    b, a =  signal.butter(N, wn, btype, fs, output='ba')
+    b, a =  signal.butter(N, wn, btype, fs=fs, output='ba')
     xt = signal.lfilter(b, a, xt)
 
     # Ensure the signal is mono, then play through speakers

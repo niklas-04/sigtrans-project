@@ -15,7 +15,7 @@ import sounddevice as sd
 import wcslib as wcs
 
 # TODO: Add relevant parametrs to parameters.py
-from parameters import Tb, dt # ...
+from parameters import Tb, dt, Ac, Wc# ...
 
 def main():
     parser = argparse.ArgumentParser(
@@ -41,32 +41,27 @@ def main():
     #yr = h(t) * xb + vr(t)  # Received signal model
     #yr = |H(wc)|xm(t-tr) + v(t)
     # TODO: Implement demodulation, etc. here
-    # ...   
-    f = 1000
-    Tb = 25/f
-    dt = 1/ 22050
-    xb = wcs.encode_baseband_signal(yr, Tb)
-    t = np.arange(0, xb.shape[0])*dt
-    Ac = 2**0.5
-    xc = np.zeros_like(xb)
-    for i in range(len(xc)):
-        xc[i] = Ac * np.sin(2*np.pi*f * t[i])
+    # ...
+    #Band limiation
+    N = 4 # order for the filter
+    wn = [900, 1100] # critical freq for filter which should be from 900 to 1100
+    btype = "bandpass"
+    fs = 1/dt # freq sampling
 
-    yd = xb * xc * xc 
-
-    alpha = 400*np.pi
-    num = np.array([alpha**2])
-    den  = np.array([1, alpha, alpha**2])
-
-
-    H = signal.TransferFunction(num, den)
-
-    _, yb, _= signal.lsim(H, yd, t)
-
-
-    xasad = wcs.decode_baseband_signal(yd, Tb)
-    # Baseband signal
-    # yb = ...
+    # we bandlimit it our freq range to the specification from the appendix which is from 900 - 1100 Hz 
+    b, a =  signal.butter(N, wn, btype, fs=fs, output='ba')
+    yr = signal.lfilter(b, a, yr)
+    
+    tt = np.arange(0, yr.shape[0])*dt
+    yI = yr * 2*np.cos(Wc*tt)
+    yQ = yr * 2*np.sin(Wc*tt)
+    
+    # Demodulation
+    b_lp, a_lp = signal.butter(N, 900, "lowpass", fs=fs , output="ba")
+    yI = signal.lfilter(b_lp, a_lp, yI)
+    yQ = signal.lfilter(b_lp, a_lp, yQ)
+    
+    yb = yI + 1J * yQ
 
     # Symbol decoding
     # TODO: Adjust fs (lab 2 only, leave untouched for lab 1 unless you know what you are doing)
