@@ -21,7 +21,7 @@ import sounddevice as sd
 import wcslib as wcs
 
 # TODO: Add relevant parameters to parameters.py
-from parameters import Tb, Ac, dt, # ...
+from parameters import Tb, Ac, dt # ...
 
 
 def main():
@@ -56,10 +56,27 @@ def main():
 
     # Encode baseband signal
     # TODO: Adjust fs (lab 2 only, leave untouched for lab 1 unless you know what you are doing)
-    xb = wcs.encode_baseband_signal(bs, Tb, 1/dt)
+    xb = wcs.encode_baseband_signal(bs, Tb, 1/dt)  #fs = 1 / dt 
 
     # TODO: Implement transmitter code here
     # xt = ...
+    # First we Baseband encode the signal
+    # Second we Modulate the signal
+    tt = np.arange(0, xb.shape[0])*dt
+    xt = np.zeros_like(xb)
+    
+    for i in range(len(xt)):
+        xt[i] = xb[i] * Ac * np.sin(2*1000*np.pi*tt[i])
+    # xt = xb * Ac * np.sin(2*1000*np.pi* tt)
+
+    N = 4 # order for the filter
+    wn = [900, 1100] # critical freq for filter which should be from 900 to 1100
+    btype = "bandpass"
+    fs = 1/dt # freq sampling
+
+    # we bandlimit it our freq range to the specification from the appendix which is from 900 - 1100 Hz 
+    b, a =  signal.butter(N, wn, btype, fs, output='ba')
+    xt = signal.lfilter(b, a, xt)
 
     # Ensure the signal is mono, then play through speakers
     xt = np.stack((xt, np.zeros(xt.shape)), axis=1)
