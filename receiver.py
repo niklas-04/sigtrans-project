@@ -8,6 +8,7 @@ transforms
 """
 
 import argparse
+from matplotlib import pyplot as plt
 import numpy as np
 from scipy import signal
 import sounddevice as sd
@@ -38,29 +39,45 @@ def main():
     print(f'Receiving for {T} s.')
     yr = sd.rec(int(T/dt), samplerate=1/dt, channels=1, blocking=True)
     yr = yr[:, 0]           # Remove second channel
-    #yr = h(t) * xb + vr(t)  # Received signal model
-    #yr = |H(wc)|xm(t-tr) + v(t)
+    # yr = h(t) * xb + vr(t)  # Received signal model
+    # yr = |H(wc)|xm(t-tr) + v(t)
     # TODO: Implement demodulation, etc. here
     # ...
-    #Band limiation
-    N = 4 # order for the filter
-    wn = [900, 1100] # critical freq for filter which should be from 900 to 1100
+    # Band limiation
+        # Band limitation
+    N = 5
+    wn = [900, 1100]   # Hz
     btype = "bandpass"
-    fs = 1/dt # freq sampling
+    fs = 1/dt
 
-    # we bandlimit it our freq range to the specification from the appendix which is from 900 - 1100 Hz 
-    b, a =  signal.butter(N, wn, btype, fs=fs, output='ba')
+    b, a = signal.butter(N, wn, btype=btype, fs=fs, output='ba')
+
+    # Correct digital frequency response
+    w, h = signal.freqz(b, a, worN=4096, fs=fs)
+
+    fig, ax = plt.subplots(2,1)
+    ax[0].semilogx(w, 20*np.log10(np.abs(h)))
+    ax[0].set_title("Magnitude response")
+    ax[0].set_xlim(800, 1200)
+    ax[0].set_ylim(-100, 0)
+
+    ax[1].semilogx(w, np.unwrap(np.angle(h)))
+    ax[1].set_title("Phase response")
+    ax[1].set_xlim(800, 1200)
+
+    plt.show()
+
     yr = signal.lfilter(b, a, yr)
-    
+
     tt = np.arange(0, yr.shape[0])*dt
     yI = yr * 2*np.cos(Wc*tt)
     yQ = yr * 2*np.sin(Wc*tt)
-    
+
     # Demodulation
     b_lp, a_lp = signal.butter(N, 900, "lowpass", fs=fs , output="ba")
     yI = signal.lfilter(b_lp, a_lp, yI)
     yQ = signal.lfilter(b_lp, a_lp, yQ)
-    
+
     yb = yI + 1J * yQ
 
     # Symbol decoding
