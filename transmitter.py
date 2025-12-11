@@ -69,7 +69,7 @@ def main():
         xt[i] = xb[i] * Ac * np.sin(Wc * tt[i])
         # xt = xb * Ac * np.sin(2*1000*np.pi* tt)
 
-    N = 10
+    N = 9
     wn = [900, 1100]  # Hz
     btype = "bandpass"
     fs = 1 / dt
