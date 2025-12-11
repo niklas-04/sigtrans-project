@@ -45,7 +45,7 @@ def main():
     # ...
     # Band limiation
         # Band limitation
-    N = 5
+    N = 10
     wn = [900, 1100]   # Hz
     btype = "bandpass"
     fs = 1/dt
@@ -59,7 +59,7 @@ def main():
     ax[0].semilogx(w, 20*np.log10(np.abs(h)))
     ax[0].set_title("Magnitude response")
     ax[0].set_xlim(800, 1200)
-    ax[0].set_ylim(-100, 0)
+    ax[0].set_ylim(-100, 1)
 
     ax[1].semilogx(w, np.unwrap(np.angle(h)))
     ax[1].set_title("Phase response")
@@ -74,7 +74,9 @@ def main():
     yQ = yr * 2*np.sin(Wc*tt)
 
     # Demodulation
-    b_lp, a_lp = signal.butter(N, 900, "lowpass", fs=fs , output="ba")
+
+    cutoff = 40  # Hz (optimal for Tb = 0.1)
+    b_lp, a_lp = signal.butter(N, cutoff, "lowpass", fs=fs , output="ba")
     yI = signal.lfilter(b_lp, a_lp, yI)
     yQ = signal.lfilter(b_lp, a_lp, yQ)
 
