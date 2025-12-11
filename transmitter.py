@@ -50,7 +50,7 @@ def main():
         bs = np.array([bit for bit in map(int, data)])
     else:
         bs = wcs.encode_string(data)
-    
+
     # Transmit signal
     print(f'Sending: {data} (no of bits: {len(bs)}; message duration: {np.round(len(bs)*Tb, 1)} s).')
 
@@ -64,18 +64,20 @@ def main():
     # Second we Modulate the signal
     tt = np.arange(0, xb.shape[0])*dt
     xt = np.zeros_like(xb)
-    
+
     for i in range(len(xt)):
-        xt[i] = xb[i] * Ac * np.sin(Wc * np.pi * tt[i])
-    # xt = xb * Ac * np.sin(2*1000*np.pi* tt)
+        xt[i] = xb[i] * Ac * np.sin(Wc * tt[i])
+        # xt = xb * Ac * np.sin(2*1000*np.pi* tt)
 
-    N = 4 # order for the filter
-    wn = [900, 1100] # critical freq for filter which should be from 900 to 1100
+    N = 10
+    wn = [900, 1100]  # Hz
     btype = "bandpass"
-    fs = 1/dt # freq sampling
+    fs = 1 / dt
 
-    # we bandlimit it our freq range to the specification from the appendix which is from 900 - 1100 Hz 
-    b, a =  signal.butter(N, wn, btype, fs=fs, output='ba')
+    b, a = signal.butter(N, wn, btype=btype, fs=fs, output="ba")
+
+    # Correct digital frequency response
+    w, h = signal.freqz(b, a, worN=4096, fs=fs)
     xt = signal.lfilter(b, a, xt)
 
     # Ensure the signal is mono, then play through speakers
