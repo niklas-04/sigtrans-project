@@ -7,23 +7,26 @@ import sounddevice as sd
 
 from parameters import Tb, dt, Wc
 
-N = 5
+N = 7
 fs = 1/dt
 
 
 def demodulation_test():
     #Transmitted bits
-    bits = np.array([1, 0 , 1, 0, 1, 1, 1, 0, 1 ,0])
-    xb = wcs.encode_baseband_signal(bits, Tb)
-
+    bits = np.array([1, 0 , 0, 0, 1, 1, 1, 0, 1 ,0, 1, 1, 0, 1, 0, 1, 0])
+    xb = wcs.encode_baseband_signal(bits, Tb, fs=fs)
 
 
     tt = np.arange(0, xb.shape[0])*dt
     yI = xb * 2*np.cos(Wc*tt)
     yQ = xb * 2*np.sin(Wc*tt)
 
+
+
     # Demodulation
-    b_lp, a_lp = signal.butter(N, 200, "lowpass", fs=fs , output="ba")
+    #b_lp, a_lp = signal.cheby2(N, 31, 1100, btype = 'lowpass', fs=fs, output='ba')
+    b_lp, a_lp = signal.butter(N, 1100, btype = 'lowpass', fs=fs, output='ba')
+
     yI = signal.lfilter(b_lp, a_lp, yI)
     yQ = signal.lfilter(b_lp, a_lp, yQ)
 
