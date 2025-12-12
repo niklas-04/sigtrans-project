@@ -45,12 +45,12 @@ def main():
     # ...
     # Band limiation
         # Band limitation
-    N = 9
+    N = 5
     wn = [900, 1100]   # Hz
     btype = "bandpass"
     fs = 1/dt
 
-    b, a = signal.butter(N, wn, btype=btype, analog=False, fs=fs, output='ba')
+    b, a = signal.ellip(N,1, 30, wn, btype=btype, analog=False, fs=fs, output='ba')
 
     # Correct digital frequency response
     w, h = signal.freqz(b, a, worN=4096, fs=fs)
@@ -75,26 +75,26 @@ def main():
 
     # Demodulation
 
-    cutoff = 120  # Hz (optimal for Tb = 0.1)
+    # cutoff = 40
 
-    fs = 10000.0          # sampling rate [Hz]
-    Tb = 25/1000          # 0.025 s
-    Rb = 1 / Tb           # 40 bit/s
+    # fs = 10000.0          
+    # Rb = 1 / Tb      
 
-    # --- Specs for lowpass (baseband) filter ---
-    wp = Rb               # passband edge: 40 Hz
-    ws = 5 * Rb           # stopband edge: 200 Hz
-    gpass = 1             # <= 1 dB ripple in passband
-    gstop = 40            # >= 40 dB attenuation in stopband
+    # wp = Rb               # passband edge: 40 Hz
+    # ws = 5 * Rb           # stopband edge: 200 Hz
+    # gpass = 1            
+    # gstop = 40          
 
-    # Butterworth IIR lowpass
-    b_lp, a_lp = signal.iirdesign(
-        wp, ws,
-        gpass=gpass,
-        gstop=gstop,
-        ftype='butter',
-        fs=fs
-    )
+    # # Butterworth lowpass
+    # b_lp, a_lp = signal.iirdesign(
+    #     wp, ws,
+    #     gpass=gpass,
+    #     gstop=gstop,
+    #     ftype='butter',
+    #     fs=fs
+    # )
+
+    b_lp, a_lp = signal.butter(N, 1100, btype="lowpass", analog=False, fs=fs, output='ba')
 
     # Plot magnitude / phase (Bode-like)
     w, h = signal.freqz(b_lp, a_lp, worN=4096, fs=fs)

@@ -65,9 +65,7 @@ def main():
     tt = np.arange(0, xb.shape[0])*dt
     xt = np.zeros_like(xb)
 
-    for i in range(len(xt)):
-        xt[i] = xb[i] * Ac * np.sin(Wc * tt[i])
-        # xt = xb * Ac * np.sin(2*1000*np.pi* tt)
+    xt = xb * Ac * np.sin(Wc * tt)
 
     N = 9
     wn = [900, 1100]  # Hz
