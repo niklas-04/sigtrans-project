@@ -28,7 +28,7 @@ def main():
         '--duration',
         help='receiver recording duration',
         type=float,
-        default=1
+        default=10
     )
     args = parser.parse_args()
 
@@ -50,7 +50,10 @@ def main():
     btype = "bandpass"
     fs = 1/dt
 
-    b, a = signal.ellip(N,1, 30, wn, btype=btype, analog=False, fs=fs, output='ba')
+    apass = 1
+    astop = 30
+
+    b, a = signal.ellip(N, apass, astop, wn, btype=btype, analog=False, fs=fs, output='ba')
 
     # Correct digital frequency response
     w, h = signal.freqz(b, a, worN=4096, fs=fs)
@@ -94,7 +97,8 @@ def main():
     #     fs=fs
     # )
 
-    b_lp, a_lp = signal.butter(N, 1100, btype="lowpass", analog=False, fs=fs, output='ba')
+    cutoff = 120
+    b_lp, a_lp = signal.butter(N, 120, btype="lowpass", analog=False, fs=fs, output='ba')
 
     # Plot magnitude / phase (Bode-like)
     w, h = signal.freqz(b_lp, a_lp, worN=4096, fs=fs)
