@@ -76,29 +76,8 @@ def main():
     yI = yr * 2*np.cos(Wc*tt)
     yQ = yr * 2*np.sin(Wc*tt)
 
-    # Demodulation
-
-    # cutoff = 40
-
-    # fs = 10000.0          
-    # Rb = 1 / Tb      
-
-    # wp = Rb               # passband edge: 40 Hz
-    # ws = 5 * Rb           # stopband edge: 200 Hz
-    # gpass = 1            
-    # gstop = 40          
-
-    # # Butterworth lowpass
-    # b_lp, a_lp = signal.iirdesign(
-    #     wp, ws,
-    #     gpass=gpass,
-    #     gstop=gstop,
-    #     ftype='butter',
-    #     fs=fs
-    # )
-
     cutoff = 120
-    b_lp, a_lp = signal.butter(N, 120, btype="lowpass", analog=False, fs=fs, output='ba')
+    b_lp, a_lp = signal.butter(N, cutoff, btype="lowpass", analog=False, fs=fs, output='ba')
 
     # Plot magnitude / phase (Bode-like)
     w, h = signal.freqz(b_lp, a_lp, worN=4096, fs=fs)
