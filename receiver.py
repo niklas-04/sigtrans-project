@@ -1,93 +1,90 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Receiver template for the wireless communication system project in Signals and
-transforms
-
-2022-present -- Roland Hostettler <roland.hostettler@angstrom.uu.se>
+Receiver för Grupp 5 (Fixad version)
 """
 
 import argparse
-from matplotlib import pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy import signal
 import sounddevice as sd
-
 import wcslib as wcs
 
-# TODO: Add relevant parametrs to parameters.py
-from parameters import Tb, dt, Ac, Wc# ...
+# Importera parametrar
+from parameters import Tb, fs, fc, Wc
 
 def main():
-    parser = argparse.ArgumentParser(
-        prog='receiver',
-        description='Acoustic wireless communication system -- receiver.'
-    )
-    parser.add_argument(
-        '-d',
-        '--duration',
-        help='receiver recording duration',
-        type=float,
-        default=10
-    )
+    parser = argparse.ArgumentParser(description='Receiver Group 5')
+    parser.add_argument('-d', '--duration', help='recording duration', type=float, default=4.0)
     args = parser.parse_args()
 
-    # Set parameters
-    T = args.duration
+    T_rec = args.duration
+    
+    # 1. Spela in
+    print(f'Recording for {T_rec} s...')
+    try:
+        # sd.rec returnerar en array med shape (samples, channels)
+        yr = sd.rec(int(T_rec * fs), samplerate=fs, channels=1, blocking=True)
+        yr = yr[:, 0] # Platta ut till 1D
+        print("Recording finished.")
+    except Exception as e:
+        print(f"Microphone error: {e}")
+        return
 
-    # Receive signal
-    print(f'Receiving for {T} s.')
-    yr = sd.rec(int(T/dt), samplerate=1/dt, channels=1, blocking=True)
-    yr = yr[:, 0]           # Remove second channel
-    # yr = h(t) * xb + vr(t)  # Received signal model
-    # yr = |H(wc)|xm(t-tr) + v(t)
-    # TODO: Implement demodulation, etc. here
-    # ...
-    # Band limiation
-        # Band limitation
-    N = 10
-    wn = [900, 1100]   # Hz
-    btype = "bandpass"
-    fs = 1/dt
+    # --- DEBUG PLOT: KOLLA ATT MIKROFONEN FUNKAR ---
+    if np.max(np.abs(yr)) < 0.001:
+        print("\nVARNING: Signalen är nästan helt tyst (bara nollor)!")
+        print("Kolla dina ljudinställningar i Linux (Settings -> Sound -> Input).")
+    
+    plt.figure(figsize=(10, 4))
+    plt.plot(yr)
+    plt.title("Rå inspelad signal (Innan filter)")
+    plt.xlabel("Samples")
+    plt.ylabel("Amplitud")
+    plt.show() # Stäng fönstret för att fortsätta koden
+    # -----------------------------------------------
 
-    b, a = signal.butter(N, wn, btype=btype, fs=fs, output='ba')
+    t = np.arange(len(yr)) / fs
 
-    # Correct digital frequency response
-    w, h = signal.freqz(b, a, worN=4096, fs=fs)
+    # 2. Bandpassfilter (Ta fram 900-1100 Hz)
+    nyquist = fs / 2
+    low = 900 / nyquist
+    high = 1100 / nyquist
+    b_bp, a_bp = signal.butter(4, [low, high], btype='band')
+    
+    ym = signal.lfilter(b_bp, a_bp, yr)
 
-    fig, ax = plt.subplots(2,1)
-    ax[0].semilogx(w, 20*np.log10(np.abs(h)))
-    ax[0].set_title("Magnitude response")
-    ax[0].set_xlim(800, 1200)
-    ax[0].set_ylim(-100, 1)
+    # 3. IQ Demodulering
+    # Multiplicera med 2*cos och 2*sin
+    yI_d = ym * 2 * np.cos(Wc * t)
+    yQ_d = ym * 2 * np.sin(Wc * t)
 
-    ax[1].semilogx(w, np.unwrap(np.angle(h)))
-    ax[1].set_title("Phase response")
-    ax[1].set_xlim(800, 1200)
+    # 4. Lågpassfilter (Ta bort höga frekvenser, behåll basbandet)
+    # Basbandet är ca 1/Tb = 100 Hz. Vi filtrerar vid 200 Hz.
+    lp_cutoff = 200 / nyquist
+    b_lp, a_lp = signal.butter(4, lp_cutoff, btype='low')
 
-    plt.show()
+    yI = signal.lfilter(b_lp, a_lp, yI_d)
+    yQ = signal.lfilter(b_lp, a_lp, yQ_d)
 
-    yr = signal.lfilter(b, a, yr)
+    # Skapa komplex signal
+    yb = yI + 1j * yQ
 
-    tt = np.arange(0, yr.shape[0])*dt
-    yI = yr * 2*np.cos(Wc*tt)
-    yQ = yr * 2*np.sin(Wc*tt)
-
-    # Demodulation
-
-    cutoff = 40  # Hz (optimal for Tb = 0.1)
-    b_lp, a_lp = signal.butter(N, cutoff, "lowpass", fs=fs , output="ba")
-    yI = signal.lfilter(b_lp, a_lp, yI)
-    yQ = signal.lfilter(b_lp, a_lp, yQ)
-
-    yb = yI + 1J * yQ
-
-    # Symbol decoding
-    # TODO: Adjust fs (lab 2 only, leave untouched for lab 1 unless you know what you are doing)
-    br = wcs.decode_baseband_signal(yb, Tb, 1/dt)
-    data_rx = wcs.decode_string(br)
-    print(f'Received: {data_rx} (no of bits: {len(br)}).')
-
+    # 5. Avkodning
+    print("Attempting to decode...")
+    try:
+        # decode_baseband_signal hittar synkroniseringen själv
+        br = wcs.decode_baseband_signal(yb, Tb, fs)
+        text_rx = wcs.decode_string(br)
+        
+        print("\n--------------------------------")
+        print(f"Bits detected: {len(br)}")
+        print(f"RECEIVED MESSAGE: {text_rx}")
+        print("--------------------------------\n")
+        
+    except Exception as e:
+        print(f"Decoding failed (signal might be too weak or noisy): {e}")
 
 if __name__ == "__main__":    
     main()
