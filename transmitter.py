@@ -16,7 +16,7 @@ from parameters import Tb, Ac, fs, fc, Wc
 def main():
     parser = argparse.ArgumentParser(description='Transmitter Group 5')
     parser.add_argument('-b', '--binary', help='message is binary', action='store_true')
-    parser.add_argument('message', help='message to transmit', nargs='?', default='Hello World!')
+    parser.add_argument('message', help='message to transmit', nargs='?', default='Hello World from Sylt!')
     args = parser.parse_args()
 
     data = args.message
@@ -45,12 +45,13 @@ def main():
     high = 1100 / nyquist
     b, a = signal.butter(4, [low, high], btype='band')
     
-    xt = signal.lfilter(b, a, xm)
+    silence = np.zeros(int(0.5 * fs))
+    xt_out = np.concatenate((silence, xm, silence))
+
+    xt = signal.lfilter(b, a, xt_out)
 
     # 5. Förbered för uppspelning (Viktigt fix!)
     # Lägg till tystnad före och efter
-    silence = np.zeros(int(0.5 * fs))
-    xt_out = np.concatenate((silence, xt, silence))
 
     # Gör till stereo (men tyst i ena kanalen)
     xt_stereo = np.stack((xt_out, np.zeros_like(xt_out)), axis=1)
