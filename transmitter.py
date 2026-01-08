@@ -21,7 +21,6 @@ def main():
 
     data = args.message
 
-    # 1. Konvertera till bitar
     if args.binary:
         bs = np.array([int(bit) for bit in data])
     else:
@@ -29,17 +28,12 @@ def main():
 
     print(f'Sending: "{data}" ({len(bs)} bits, {len(bs)*Tb:.2f} s)')
 
-    # 2. Skapa Baseband-signal
-    # fs måste skickas med här för att pulserna ska bli rätt längd i samples
     xb = wcs.encode_baseband_signal(bs, Tb, fs)
 
-    # 3. Modulering (Mix upp till 1000 Hz)
     t = np.arange(len(xb)) / fs
     carrier = Ac * np.sin(Wc * t)
     xm = xb * carrier
 
-    # 4. Bandpassfilter (900-1100 Hz)
-    # Vi använder Butterworth ordning 4 för stabilitet
     nyquist = fs / 2
     low = 900 / nyquist
     high = 1100 / nyquist
@@ -51,14 +45,8 @@ def main():
 
     xt = signal.lfilter(b, a, xt_out)
 
-    # 5. Förbered för uppspelning (Viktigt fix!)
-    # Lägg till tystnad före och efter
-
-    # Gör till stereo (men tyst i ena kanalen)
     xt_stereo = np.stack((xt_out, np.zeros_like(xt_out)), axis=1)
 
-    # --- NORMALISERING (Fixar "Overflow" varningen) ---
-    # Ljudkortet klarar max 1.0. Er signal är ca 1.41.
     max_val = np.max(np.abs(xt_stereo))
     if max_val > 1.0:
         print(f"Info: Signal amplitude {max_val:.2f} > 1.0. Normalizing...")
