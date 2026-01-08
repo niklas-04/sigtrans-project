@@ -51,7 +51,10 @@ def main():
     nyquist = fs / 2
     low = 900 / nyquist
     high = 1100 / nyquist
-    b_bp, a_bp = signal.butter(4, [low, high], btype='band')
+    apass = 1
+    astop = 30
+    
+    b_bp, a_bp = signal.ellip(5, apass, astop, [low, high], btype='bandpass', analog=False, fs=fs, output='ba')
     
     ym = signal.lfilter(b_bp, a_bp, yr)
 

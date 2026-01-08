@@ -43,8 +43,9 @@ def main():
     nyquist = fs / 2
     low = 900 / nyquist
     high = 1100 / nyquist
-    b, a = signal.butter(4, [low, high], btype='band')
-    
+    apass = 1
+    astop = 30
+    b, a = signal.ellip(5, apass, astop, [low, high], btype='bandpass', analog=False, output='ba')    
     silence = np.zeros(int(0.5 * fs))
     xt_out = np.concatenate((silence, xm, silence))
 
