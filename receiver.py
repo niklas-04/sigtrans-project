@@ -54,7 +54,7 @@ def main():
     apass = 1
     astop = 30
     
-    b_bp, a_bp = signal.ellip(5, apass, astop, [low, high], btype='bandpass', analog=False, fs=fs, output='ba')
+    b_bp, a_bp = signal.ellip(5, apass, astop, [low, high], btype='bandpass', analog=False, output='ba')
     
     ym = signal.lfilter(b_bp, a_bp, yr)
 
